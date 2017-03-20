@@ -44,34 +44,34 @@ class DBusClient(object):
         if not plcname:
             plcname = self.hostname
 
-        try:
-            return self._registerPLC(plcname)
-        except DBusException:
-            self.connect_to_dbus()
-            return self.registerPLC(plcname)
-            pass
+        while True:
+            try:
+                return self._registerPLC(plcname)
+            except DBusException:
+                self.connect_to_dbus()
+                pass
 
     def readSensors(self, plcname=None):
         if not plcname:
             plcname = self.hostname
 
-        try:
-            return self._readSensors(plcname)
-        except DBusException:
-            self.connect_to_dbus()
-            return self.readSensors(plcname)
-            pass
+        while True:
+            try:
+                return self._readSensors(plcname)
+            except DBusException:
+                self.connect_to_dbus()
+                pass
 
     def setValues(self, fx, address, values, plcname=None):
         if not plcname:
             plcname = self.hostname
-        
-        try:
-            return self._setValues(plcname, fx, address, values)
-        except DBusException:
-            self.connect_to_dbus()
-            return self.setValues(fx, address, values, plcname)
-            pass
+
+        while True:
+            try:
+                return self._setValues(plcname, fx, address, values)
+            except DBusException:
+                self.connect_to_dbus()
+                pass
 
     def introspect(self):
         print self.remote_object.Introspect(dbus_interface="org.freedesktop.DBus.Introspectable")
