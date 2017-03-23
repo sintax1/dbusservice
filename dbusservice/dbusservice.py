@@ -12,6 +12,21 @@ import copy
 import logging
 log = logging.getLogger('scadasim')
 
+class DBusClient(object):
+ 
+    def __init__(self):
+        import socket
+        self.name = socket.gethostname()
+        self.bus = dbus.SystemBus()
+        self.remote_object = bus.get_object("com.root9b.scadasim", "/")
+        self.iface = dbus.Interface(self.remote_object, "com.root9b.scadasim")
+        self.registerPLC = self.iface.registerPLC
+        self.readSensors = self.iface.readSensors
+
+    def introspect(self):
+        print self.remote_object.Introspect(dbus_interface="org.freedesktop.DBus.Introspectable")
+
+
 class DBusService(threading.Thread):
 
     def __init__(self):

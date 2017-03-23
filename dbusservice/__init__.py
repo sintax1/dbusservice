@@ -1,1 +1,1 @@
-from dbusservice import DBusService
+from dbusservice import DBusService, DBusClient
