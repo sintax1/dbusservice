@@ -127,7 +127,7 @@ class DBusWorker(dbus.service.Object):
         self.plcs[plc]['registered'] = True
         return int(self.plcs[plc]['slaveid'])
 
-    @dbus.service.method("com.root9b.scadasim", in_signature='s', out_signature='a{sv}')
+    @dbus.service.method("com.root9b.scadasim", in_signature='s', out_signature='v')
     def readSensors(self, plc):
         sensors = copy.deepcopy(self.plcs[plc]['sensors'])
         for sensor in sensors:
