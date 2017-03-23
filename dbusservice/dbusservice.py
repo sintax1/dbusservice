@@ -132,7 +132,7 @@ class DBusWorker(dbus.service.Object):
         sensors = copy.deepcopy(self.plcs[plc]['sensors'])
         for sensor in sensors:
             sensors[sensor].pop('read_sensor', None)
-        return sensors
+        return {'sensors': sensors}
 
 
 if __name__ == '__main__':
