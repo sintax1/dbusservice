@@ -18,7 +18,7 @@ class DBusClient(object):
         import socket
         self.name = socket.gethostname()
         self.bus = dbus.SystemBus()
-        self.remote_object = bus.get_object("com.root9b.scadasim", "/")
+        self.remote_object = self.bus.get_object("com.root9b.scadasim", "/")
         self.iface = dbus.Interface(self.remote_object, "com.root9b.scadasim")
         self.registerPLC = self.iface.registerPLC
         self.readSensors = self.iface.readSensors
