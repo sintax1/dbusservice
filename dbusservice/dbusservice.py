@@ -16,12 +16,18 @@ class DBusClient(object):
  
     def __init__(self):
         import socket
-        self.name = socket.gethostname()
+        self.hostname = socket.gethostname()
         self.bus = dbus.SystemBus()
         self.remote_object = self.bus.get_object("com.root9b.scadasim", "/")
         self.iface = dbus.Interface(self.remote_object, "com.root9b.scadasim")
-        self.registerPLC = self.iface.registerPLC
-        self.readSensors = self.iface.readSensors
+        self._registerPLC = self.iface.registerPLC
+        self._readSensors = self.iface.readSensors
+
+    def registerPLC(self, hostname=self.hostname):
+        return self._registerPLC(hostname)
+
+    def readSensors(self, hostname=self.hostname):
+        return self._readSensors(hostname)
 
     def introspect(self):
         print self.remote_object.Introspect(dbus_interface="org.freedesktop.DBus.Introspectable")
