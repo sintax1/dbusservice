@@ -16,13 +16,14 @@ class DBusClient(object):
  
     def __init__(self, hostname=None):
         import socket
-        if not hostname:
-            self.hostname = socket.gethostname()
         self.bus = dbus.SystemBus()
         self.remote_object = self.bus.get_object("com.root9b.scadasim", "/")
         self.iface = dbus.Interface(self.remote_object, "com.root9b.scadasim")
         self._registerPLC = self.iface.registerPLC
         self._readSensors = self.iface.readSensors
+        self.hostname = hostname
+        if not hostname:
+            self.hostname = socket.gethostname()
 
     def registerPLC(self, plcname=None):
         if not plcname:
@@ -115,7 +116,7 @@ class DBusWorker(dbus.service.Object):
     """
 
     #https://dbus.freedesktop.org/doc/dbus-python/doc/tutorial.html#basic-type-conversions
-    @dbus.service.method("com.root9b.scadasim", in_signature='s', out_signature='a{sv}')
+    @dbus.service.method("com.root9b.scadasim", in_signature='s', out_signature='q')
     def registerPLC(self, plc):
         """
             return sensor name and sensor address in PLC.
@@ -124,14 +125,14 @@ class DBusWorker(dbus.service.Object):
         dbus-send --system --print-reply --dest=com.root9b.scadasim / com.root9b.scadasim.registerPLC string:"hello"
         """
         self.plcs[plc]['registered'] = True
-        return self.readSensors(plc)
+        return int(self.plcs[plc]['slaveid'])
 
     @dbus.service.method("com.root9b.scadasim", in_signature='', out_signature='a{sv}')
     def readSensors(self, plc):
         sensors = copy.deepcopy(self.plcs[plc]['sensors'])
         for sensor in sensors:
             sensors[sensor].pop('read_sensor', None)
-        return sensors
+        return {'slaveid': self.plcs[plc]['slaveid'], 'sensors': sensors}
 
 
 if __name__ == '__main__':
