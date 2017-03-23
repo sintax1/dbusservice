@@ -14,9 +14,10 @@ log = logging.getLogger('scadasim')
 
 class DBusClient(object):
  
-    def __init__(self):
+    def __init__(self, hostname=None):
         import socket
-        self.hostname = socket.gethostname()
+        if not hostname:
+            self.hostname = socket.gethostname()
         self.bus = dbus.SystemBus()
         self.remote_object = self.bus.get_object("com.root9b.scadasim", "/")
         self.iface = dbus.Interface(self.remote_object, "com.root9b.scadasim")
