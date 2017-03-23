@@ -23,11 +23,15 @@ class DBusClient(object):
         self._registerPLC = self.iface.registerPLC
         self._readSensors = self.iface.readSensors
 
-    def registerPLC(self, hostname=self.hostname):
-        return self._registerPLC(hostname)
+    def registerPLC(self, plcname=None):
+        if not plcname:
+            plcname = self.hostname
+        return self._registerPLC(plcname)
 
-    def readSensors(self, hostname=self.hostname):
-        return self._readSensors(hostname)
+    def readSensors(self, plcname=None):
+        if not plcname:
+            plcname = self.hostname
+        return self._readSensors(plcname)
 
     def introspect(self):
         print self.remote_object.Introspect(dbus_interface="org.freedesktop.DBus.Introspectable")
