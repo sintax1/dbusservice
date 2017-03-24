@@ -36,11 +36,10 @@ class DBusClient(object):
             plcname = self.hostname
         return self._readSensors(plcname)
 
-    def setValue(self, plcname=None, address, value):
+    def setValue(self, address, value, plcname=None):
         if not plcname:
             plcname = self.hostname
         return self._setValue(plcname, address, value)
-
 
     def introspect(self):
         print self.remote_object.Introspect(dbus_interface="org.freedesktop.DBus.Introspectable")
