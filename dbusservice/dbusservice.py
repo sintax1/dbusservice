@@ -74,7 +74,7 @@ class DBusService(threading.Thread):
         for plc in self.plcs:
             for sensor in self.plcs[plc]['sensors']:
                 read_sensor = self.plcs[plc]['sensors'][sensor]['read_sensor']
-                self.plcs[plc]['sensors'][sensor]['value'] = read_sensor()
+                self.plcs[plc]['sensors'][sensor]['value'] = int(read_sensor())
 
         # Calculate the next run time based on simulation speed and read frequency
         delay = (-time.time()%(self.speed*self.read_frequency))
@@ -127,12 +127,12 @@ class DBusWorker(dbus.service.Object):
         self.plcs[plc]['registered'] = True
         return int(self.plcs[plc]['slaveid'])
 
-    @dbus.service.method("com.root9b.scadasim", in_signature='s', out_signature='v')
+    @dbus.service.method("com.root9b.scadasim", in_signature='s', out_signature='a{sa{sv}}')
     def readSensors(self, plc):
         sensors = copy.deepcopy(self.plcs[plc]['sensors'])
         for sensor in sensors:
             sensors[sensor].pop('read_sensor', None)
-        return {'sensors': sensors}
+        return sensors
 
 
 if __name__ == '__main__':
