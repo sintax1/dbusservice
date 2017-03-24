@@ -13,7 +13,7 @@ import logging
 log = logging.getLogger('scadasim')
 
 class DBusClient(object):
- 
+
     def __init__(self, hostname=None):
         import socket
         self.bus = dbus.SystemBus()
@@ -36,14 +36,13 @@ class DBusClient(object):
             plcname = self.hostname
         return self._readSensors(plcname)
 
-    def setValue(self, address, value, plcname=None):
+    def setValue(self, fx, address, value, plcname=None):
         if not plcname:
             plcname = self.hostname
-        return self._setValue(plcname, address, value)
+        return self._setValue(plcname, fx, address, value)
 
     def introspect(self):
         print self.remote_object.Introspect(dbus_interface="org.freedesktop.DBus.Introspectable")
-
 
 class DBusService(threading.Thread):
 
@@ -140,10 +139,31 @@ class DBusWorker(dbus.service.Object):
             sensors[sensor].pop('read_sensor', None)
         return sensors
 
-    @dbus.service.method("com.root9b.scadasim", in_signature='suaq', out_signature='b')
-    def setValue(self, plc, address, value):
+    @dbus.service.method("com.root9b.scadasim", in_signature='squaq', out_signature='b')
+    def setValue(self, plc, fx, address, values):
+        register = None
+        if fx == 5:
+            # write single coil
+            register = 'c'
+            value = bool(values)
+        elif fx == 15:
+            # write multiple coils
+            register = 'c'
+            value = bool(values[0])
+        elif fx == 6:
+            # write single register
+            register = 'h'
+            value = int(values)
+        elif fx == 16:
+            # write multiple registers
+            register = 'h'
+            value = int(values[0])
+        else:
+            return False
+
         for sensor in self.plcs[plc]['sensors']:
-            if address == self.plcs[plc]['sensors'][sensor]['data_address']:
+            s = self.plcs[plc]['sensors'][sensor]
+            if address == s['data_address'] and register == s['register_type']:
                 self.plcs[plc]['sensors'][sensor]['value'] = value
                 return True
         return False
