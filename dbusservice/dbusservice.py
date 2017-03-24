@@ -143,7 +143,7 @@ class DBusWorker(dbus.service.Object):
     @dbus.service.method("com.root9b.scadasim", in_signature='suq', out_signature='b')
     def setValue(self, plc, address, value):
         for sensor in self.plcs[plc]['sensors']:
-            if address in self.plcs[plc]['sensors'][sensor]['data_address']:
+            if address == self.plcs[plc]['sensors'][sensor]['data_address']:
                 self.plcs[plc]['sensors'][sensor]['value'] = value
                 return True
         return False
