@@ -21,6 +21,7 @@ class DBusClient(object):
         self.iface = dbus.Interface(self.remote_object, "com.root9b.scadasim")
         self._registerPLC = self.iface.registerPLC
         self._readSensors = self.iface.readSensors
+        self._setValue = self.iface.setValue
         self.hostname = hostname
         if not hostname:
             self.hostname = socket.gethostname()
@@ -34,6 +35,12 @@ class DBusClient(object):
         if not plcname:
             plcname = self.hostname
         return self._readSensors(plcname)
+
+    def setValue(self, plcname=None, address, value):
+        if not plcname:
+            plcname = self.hostname
+        return self._setValue(plcname, address, value)
+
 
     def introspect(self):
         print self.remote_object.Introspect(dbus_interface="org.freedesktop.DBus.Introspectable")
@@ -134,6 +141,13 @@ class DBusWorker(dbus.service.Object):
             sensors[sensor].pop('read_sensor', None)
         return sensors
 
+    @dbus.service.method("com.root9b.scadasim", in_signature='suq', out_signature='b')
+    def setValue(self, plc, address, value):
+        for sensor in self.plcs[plc]['sensors']:
+            if address in self.plcs[plc]['sensors'][sensor]['data_address']:
+                self.plcs[plc]['sensors'][sensor]['value'] = value
+                return True
+        return False
 
 if __name__ == '__main__':
     db = DBusService()
