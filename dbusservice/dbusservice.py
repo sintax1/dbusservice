@@ -167,7 +167,8 @@ class DBusWorker(dbus.service.Object):
         for sensor in self.plcs[plc]['sensors']:
             s = self.plcs[plc]['sensors'][sensor]
             if address == s['data_address'] and register == s['register_type']:
-                self.plcs[plc]['sensors'][sensor].write_sensor(value)
+                write_sensor = self.plcs[plc]['sensors'][sensor]['write_sensor']
+                write_sensor(value)
                 return True
         return False
 
