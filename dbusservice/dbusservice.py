@@ -141,7 +141,7 @@ class DBusWorker(dbus.service.Object):
         return sensors
 
     @dbus.service.method("com.root9b.scadasim", in_signature='squaq', out_signature='b')
-    def setValue(self, plc, fx, address, values):
+    def setValues(self, plc, fx, address, values):
         register = None
         if not hasattr(values,"__iter__"): values = [ values ]
 
