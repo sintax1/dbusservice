@@ -138,6 +138,7 @@ class DBusWorker(dbus.service.Object):
         for sensor in sensors:
             # Remove the read_sensor method to avoid parsing errors
             sensors[sensor].pop('read_sensor', None)
+            sensors[sensor].pop('write_sensor', None)
         return sensors
 
     @dbus.service.method("com.root9b.scadasim", in_signature='squaq', out_signature='b')
@@ -166,7 +167,7 @@ class DBusWorker(dbus.service.Object):
         for sensor in self.plcs[plc]['sensors']:
             s = self.plcs[plc]['sensors'][sensor]
             if address == s['data_address'] and register == s['register_type']:
-                self.plcs[plc]['sensors'][sensor].write_value(value)
+                self.plcs[plc]['sensors'][sensor].write_sensor(value)
                 return True
         return False
 
