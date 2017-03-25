@@ -159,10 +159,10 @@ class DBusWorker(dbus.service.Object):
         retval = False
         for offset in range(len(values)):
             # If multiple values provided, try to write them all
-            retval |= self.write_sensor(register, address+offset, values[offset])
+            retval |= self._write_sensor(plc, register, address+offset, values[offset])
         return retval
 
-    def write_sensor(self, register, address, value):
+    def _write_sensor(self, plc, register, address, value):
         for sensor in self.plcs[plc]['sensors']:
             s = self.plcs[plc]['sensors'][sensor]
             if address == s['data_address'] and register == s['register_type']:
