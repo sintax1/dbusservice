@@ -21,7 +21,7 @@ class DBusClient(object):
         self.iface = dbus.Interface(self.remote_object, "com.root9b.scadasim")
         self._registerPLC = self.iface.registerPLC
         self._readSensors = self.iface.readSensors
-        self._setValue = self.iface.setValue
+        self._setValues = self.iface.setValues
         self.hostname = hostname
         if not hostname:
             self.hostname = socket.gethostname()
@@ -36,10 +36,10 @@ class DBusClient(object):
             plcname = self.hostname
         return self._readSensors(plcname)
 
-    def setValue(self, fx, address, value, plcname=None):
+    def setValues(self, fx, address, values, plcname=None):
         if not plcname:
             plcname = self.hostname
-        return self._setValue(plcname, fx, address, value)
+        return self._setValues(plcname, fx, address, values)
 
     def introspect(self):
         print self.remote_object.Introspect(dbus_interface="org.freedesktop.DBus.Introspectable")
@@ -79,7 +79,7 @@ class DBusService(threading.Thread):
         for plc in self.plcs:
             for sensor in self.plcs[plc]['sensors']:
                 read_sensor = self.plcs[plc]['sensors'][sensor]['read_sensor']
-                self.plcs[plc]['sensors'][sensor]['value'] = int(read_sensor())
+                self.plcs[plc]['sensors'][sensor]['value'] = read_sensor()
 
         # Calculate the next run time based on simulation speed and read frequency
         delay = (-time.time()%(self.speed*self.read_frequency))
@@ -136,37 +136,40 @@ class DBusWorker(dbus.service.Object):
     def readSensors(self, plc):
         sensors = copy.deepcopy(self.plcs[plc]['sensors'])
         for sensor in sensors:
+            # Remove the read_sensor method to avoid parsing errors
             sensors[sensor].pop('read_sensor', None)
         return sensors
 
     @dbus.service.method("com.root9b.scadasim", in_signature='squaq', out_signature='b')
     def setValue(self, plc, fx, address, values):
         register = None
-        if fx == 5:
-            # write single coil
+        if not hasattr(values,"__iter__"): values = [ values ]
+
+        if fx == 5 or fx == 15:
+            # write single or multiple coils
             register = 'c'
-            value = bool(values)
-        elif fx == 15:
-            # write multiple coils
-            register = 'c'
-            value = bool(values[0])
-        elif fx == 6:
-            # write single register
+            values = map(bool, values)
+        elif fx == 6 or fx == 16:
+            # write single or multiple holding registers
             register = 'h'
-            value = int(values)
-        elif fx == 16:
-            # write multiple registers
-            register = 'h'
-            value = int(values[0])
+            values = map(int, values)
         else:
             return False
 
+        retval = False
+        for offset in range(len(values)):
+            # If multiple values provided, try to write them all
+            retval |= self.write_sensor(register, address+offset, values[offset])
+        return retval
+
+    def write_sensor(self, register, address, value):
         for sensor in self.plcs[plc]['sensors']:
             s = self.plcs[plc]['sensors'][sensor]
             if address == s['data_address'] and register == s['register_type']:
-                self.plcs[plc]['sensors'][sensor]['value'] = value
+                self.plcs[plc]['sensors'][sensor].write_value(value)
                 return True
         return False
+
 
 if __name__ == '__main__':
     db = DBusService()
