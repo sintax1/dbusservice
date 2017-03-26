@@ -3,6 +3,7 @@
 import dbus
 import dbus.service
 import dbus.mainloop.glib
+from dbus.exceptions import DBusException
 from gi.repository import GObject as gobject
 import threading
 import time
@@ -16,30 +17,61 @@ class DBusClient(object):
 
     def __init__(self, hostname=None):
         import socket
-        self.bus = dbus.SystemBus()
-        self.remote_object = self.bus.get_object("com.root9b.scadasim", "/")
-        self.iface = dbus.Interface(self.remote_object, "com.root9b.scadasim")
-        self._registerPLC = self.iface.registerPLC
-        self._readSensors = self.iface.readSensors
-        self._setValues = self.iface.setValues
         self.hostname = hostname
         if not hostname:
             self.hostname = socket.gethostname()
+        self.connect_to_dbus()
+
+    def connect_to_dbus(self):
+        while True:
+            try:
+                log.debug("Connecting to dbus")
+                self.bus = dbus.SystemBus()
+                self.remote_object = self.bus.get_object("com.root9b.scadasim", "/")
+                self.iface = dbus.Interface(self.remote_object, "com.root9b.scadasim")
+                self._registerPLC = self.iface.registerPLC
+                self._readSensors = self.iface.readSensors
+                self._setValues = self.iface.setValues
+                return True
+            except DBusException:
+                log.error("Dbus error. Verify that the scadasim simulator is running and registered on the dbus.")
+                log.error("Retrying in 5 seconds...")
+                pass
+            time.sleep(5)
+
 
     def registerPLC(self, plcname=None):
         if not plcname:
             plcname = self.hostname
-        return self._registerPLC(plcname)
+
+        try:
+            return self._registerPLC(plcname)
+        except DBusException:
+            self.connect_to_dbus()
+            return self.registerPLC(plcname)
+            pass
 
     def readSensors(self, plcname=None):
         if not plcname:
             plcname = self.hostname
-        return self._readSensors(plcname)
+
+        try:
+            return self._readSensors(plcname)
+        except DBusException:
+            self.connect_to_dbus()
+            return self.readSensors(plcname)
+            pass
 
     def setValues(self, fx, address, values, plcname=None):
         if not plcname:
             plcname = self.hostname
-        return self._setValues(plcname, fx, address, values)
+        
+        try:
+            return self._setValues(plcname, fx, address, values)
+        except DBusException:
+            self.connect_to_dbus()
+            return self.setValues(fx, address, values, plcname)
+            pass
 
     def introspect(self):
         print self.remote_object.Introspect(dbus_interface="org.freedesktop.DBus.Introspectable")
