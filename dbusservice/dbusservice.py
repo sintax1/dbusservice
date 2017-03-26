@@ -107,11 +107,13 @@ class DBusWorker(dbus.service.Object):
         dbus.service.Object.__init__(self, self.name, '/')
 
     """
+    'di' - Discrete Inputs initializer 'co' - Coils initializer 'hr' - Holding Register initializer 'ir' - Input Registers iniatializer
+
     Coil/Register Numbers   Data Addresses  Type        Table Name                          Use
-    1-9999                  0000 to 270E    Read-Write  Discrete Output Coils               on/off read/write
-    10001-19999             0000 to 270E    Read-Only   Discrete Input Contacts             on/off readonly
-    30001-39999             0000 to 270E    Read-Only   Analog Input Registers              analog readonly
-    40001-49999             0000 to 270E    Read-Write  Analog Output Holding Registers     analog read/write
+    1-9999                  0000 to 270E    Read-Write  Discrete Output Coils               on/off read/write   co
+    10001-19999             0000 to 270E    Read-Only   Discrete Input Contacts             on/off readonly     di
+    30001-39999             0000 to 270E    Read-Only   Analog Input Registers              analog readonly     ir
+    40001-49999             0000 to 270E    Read-Write  Analog Output Holding Registers     analog read/write   hr
 
     Each coil or contact is 1 bit and assigned a data address between 0000 and 270E.
     Each register is 1 word = 16 bits = 2 bytes
@@ -143,16 +145,17 @@ class DBusWorker(dbus.service.Object):
 
     @dbus.service.method("com.root9b.scadasim", in_signature='squaq', out_signature='b')
     def setValues(self, plc, fx, address, values):
-        register = None
         if not hasattr(values,"__iter__"): values = [ values ]
 
-        if fx == 5 or fx == 15:
-            # write single or multiple coils
-            register = 'c'
+        __fx_mapper = {2: 'd', 4: 'i'}
+        __fx_mapper.update([(i, 'h') for i in [3, 6, 16, 22, 23]])
+        __fx_mapper.update([(i, 'c') for i in [1, 5, 15]])
+
+        register = __fx_mapper[fx]
+
+        if register == 'c' or register == 'd':
             values = map(bool, values)
-        elif fx == 6 or fx == 16:
-            # write single or multiple holding registers
-            register = 'h'
+        elif register == 'i' or register == 'h':
             values = map(int, values)
         else:
             return False
