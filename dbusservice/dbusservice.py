@@ -76,7 +76,7 @@ class DBusClient(object):
     def introspect(self):
         print self.remote_object.Introspect(dbus_interface="org.freedesktop.DBus.Introspectable")
 
-class DBusService(threading.Thread):
+class DBusService(object):
 
     def __init__(self):
         super(DBusService, self).__init__()
@@ -86,14 +86,23 @@ class DBusService(threading.Thread):
         self.read_frequency = 0.5
         self.speed = 1
         self.active = True
+        self.read_sensor_thread = None
 
-    def run(self):
+        log.debug('Starting dbus main thread')
+        self.dbus_loop_thread = threading.Thread(target=self.bus_loop)
+        self.dbus_loop_thread.daemon = True
+
+    def start(self):
         log.debug('Starting read sensors worker thread')
-        self._read_sensors()
+        self.read_sensor_thread = threading.Thread(target=self._read_sensors)
+        self.read_sensor_thread.daemon = True
+        self.read_sensor_thread.start()
+        if not self.dbus_loop_thread.isAlive():
+            self.dbus_loop_thread.start()
 
+    def bus_loop(self):
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         self.db = DBusWorker(self.plcs)
-        log.debug('Starting dbus main thread')
         self.db.loop.run()
 
     def set_speed(self, speed):
@@ -103,21 +112,17 @@ class DBusService(threading.Thread):
         self.plcs = plcs
 
     def _read_sensors(self):
+        while not self._stop.is_set():
+            log.debug("%s Reading Sensors %s" % (self, datetime.now()))
 
-        if self._stop.is_set(): return
+            for plc in self.plcs:
+                for sensor in self.plcs[plc]['sensors']:
+                    read_sensor = self.plcs[plc]['sensors'][sensor]['read_sensor']
+                    self.plcs[plc]['sensors'][sensor]['value'] = read_sensor()
 
-        log.debug("%s Reading Sensors %s" % (self, datetime.now()))
-
-        for plc in self.plcs:
-            for sensor in self.plcs[plc]['sensors']:
-                read_sensor = self.plcs[plc]['sensors'][sensor]['read_sensor']
-                self.plcs[plc]['sensors'][sensor]['value'] = read_sensor()
-
-        # Calculate the next run time based on simulation speed and read frequency
-        delay = (-time.time()%(self.speed*self.read_frequency))
-        t = threading.Timer(delay, self._read_sensors)
-        t.daemon = True
-        t.start()
+            # Calculate the next run time based on simulation speed and read frequency
+            delay = (-time.time()%(self.speed*self.read_frequency))
+            time.sleep(delay)
 
     def activate(self):
         self._stop.clear()
@@ -125,7 +130,7 @@ class DBusService(threading.Thread):
 
     def deactivate(self):
         self._stop.set()
-        self.db.loop.quit()
+        self.read_sensor_thread.join()
 
  
 class DBusWorker(dbus.service.Object):
@@ -199,6 +204,7 @@ class DBusWorker(dbus.service.Object):
         return retval
 
     def _write_sensor(self, plc, register, address, value):
+
         for sensor in self.plcs[plc]['sensors']:
             s = self.plcs[plc]['sensors'][sensor]
             if address == s['data_address'] and register == s['register_type']:
